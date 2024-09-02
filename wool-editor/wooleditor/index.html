@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Wool editor</title>
+
+	<!-- libraries -->
+	<!-- Insert this line above jquery script imports.
+	See: https://stackoverflow.com/questions/52381131/jstree-is-not-a-function-using-jstree-in-electron-js  -->
+	<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+
+	<!--
+	<script type="text/javascript" src="js/libs/jquery-1.11.2.min.js"></script>
+	-->
+	<script type="text/javascript" src="../node_modules/jquery/dist/jquery.min.js"></script>
+	<script type="text/javascript" src="js/libs/jquery.mousewheel.min.js"></script>
+	<script type="text/javascript" src="../node_modules/jquery-ui-dist/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="js/libs/transit.js"></script>
+	<script type="text/javascript" src="js/libs/knockout-3.3.0.js"></script>
+	<script type="text/javascript" src="js/libs/knockout.ace.js"></script>
+	<script type="text/javascript" src="js/libs/ace.js"></script>
+	<script type="text/javascript" src="js/libs/typo.js"></script>
+	<script type="text/javascript" src="js/libs/spellcheck_ace.js"></script>
+	<script type="text/javascript" src="js/libs/theme-wool.js"></script>
+	<script type="text/javascript" src="js/libs/mode-wool.js"></script>
+
+	<script type="text/javascript" src="../lib/i18n/gettext.js"></script>
+	<script type="text/javascript" src="../lib/i18n/i18n.js"></script>
+	<script type="text/javascript" src="../lib/i18n/language_region_codes.js"></script>
+	<script type="text/javascript" src="../lib/rrdwizard.js"></script>
+
+	<script type="text/javascript" src="../node_modules/split.js/dist/split.min.js"></script>
+	<script type="text/javascript" src="../node_modules/jstree/dist/jstree.min.js"></script>
+	<link rel="stylesheet" href="../node_modules/jstree/dist/themes/default/style.min.css" />
+
+	<!-- various models / classes -->
+	<script type="text/javascript" src="../lib/jstree/conditionalselect.js"></script>
+	<script type="text/javascript" src="../lib/debug.js"></script>
+	<script type="text/javascript" src="../lib/utils.js"></script>
+	<script type="text/javascript" src="../lib/filesystem.js"></script>
+	<script type="text/javascript" src="../lib/metadata.js"></script>
+	<script type="text/javascript" src="js/classes/app.js"></script>
+	<script type="text/javascript" src="js/classes/data.js"></script>
+	<script type="text/javascript" src="js/classes/utils.js"></script>
+	<script type="text/javascript" src="js/classes/node.js"></script>
+	<script type="text/javascript" src="js/classes/filemanager.js"></script>
+
+	<script type="text/javascript" src="../woolserver-js/woolserver-js-api.js"></script>
+	<script type="text/javascript" src="../woolserver-js/woolserver-js.js"></script>
+
+	<link rel="stylesheet" href="../node_modules/jquery-ui-dist/jquery-ui.min.css">
+	<link rel="stylesheet" href="css/normalize.css">
+	<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+	<script>
+	// clear all persistent storage
+	/*localStorage.removeItem(App.LOCALSTORAGEPREFIX+"root");
+	localStorage.removeItem(App.LOCALSTORAGEPREFIX+"uistate");
+	localStorage.removeItem(App.LOCALSTORAGEPREFIX+"path");
+	localStorage.removeItem(App.LOCALSTORAGEPREFIX+"langDefs");
+	localStorage.removeItem(App.LOCALSTORAGEPREFIX+"buffer");*/
+	</script>
+
+	<div id='waitoverlay'>
+	</div>
+
+	<!-- wizard UI -->
+	<div id='wizardoverlay' class='app-bg'>
+
+		<div class='wizard app-bg-light' id='startwool' style='text-align:center;'>
+			<img src="images/wool-logo-300.png" style='margin-top:40px;' />
+			<div class='title' >Welcome to WOOL!</div>
+			<div class='button' onclick="wizard.open('newproject');">Create new WOOL project</div>
+			<div class='button' onclick="filemgr.sendSelectBaseDir();">Open WOOL project</div>
+		</div>
+
+		<div class='wizard app-bg-light' id='newproject'>
+			<div class='wizardprogress'>
+				<div>Create new project</div>
+				<div><b>1. Project Location</b></div>
+				<div>2. Languages</div>
+				<div>3. Finished!</div>
+			</div>
+			<div class='wizardform'>
+				<div class='wizard-nav'>
+					<button class='prevbutton' 
+						onclick='if (App.getCurrentPath()) { wizard.closeAll(); } else { wizard.open("startwool"); } '>
+					Cancel</button>
+					<button class='nextbutton' onclick='wizard.open("selectlanguage");'
+						data-bind="enable: projectDir"
+					>Next</button>
+				</div>
+
+				<div class='title' >Create new project</div>
+				<div>Please select a folder name for your WOOL project, and
+				choose where the project should be stored.</div>
+				<div class='field'>
+					<div class='fieldleft'>Project name</div> 
+					<div class='fieldright'>
+						<input class='filefield' id="wizard_project_name"
+							onchange="wizardCreateProject.setProjectDir()"
+							onkeyrelease='wizardCreateProject.setProjectDir()'
+							onpaste='wizardCreateProject.setProjectDir()'
+							oninput='wizardCreateProject.setProjectDir()'
+							type="text"> </input>
+					</div>
+				</div>
+				<div class='field'>
+					<div class='fieldleft'>Project directory</div>
+					<div class='fieldright'>
+						<input class='filefield' id="wizard_project_dir"
+						onchange="wizardCreateProject.setProjectDir()"
+						onkeyrelease='wizardCreateProject.setProjectDir()'
+						onpaste='wizardCreateProject.setProjectDir()'
+						oninput='wizardCreateProject.setProjectDir()'
+						type="text" webkitdirectory directory> </input> 
+						<button onclick='wizardCreateProject.openProjectDir()'>Select ...</button>
+					</div>
+				</div>
+
+				<div class='field' id="wizard_project_stored_title"
+				style='padding-top:30px; font-weight:bold;'>
+				</div>
+
+				<div class='field' id="wizard_project_stored"
+				style='padding-bottom:30px;'>
+				</div>
+
+			</div>
+		</div>
+
+		<div class='wizard app-bg-light' id='selectlanguage'>
+			<div class='wizardprogress'>
+				<div>Create new project</div>
+				<div>1. Project Location</div>
+				<div><b>2. Languages</b></div>
+				<div>3. Finished!</div>
+			</div>
+
+			<div class='wizardform'>
+
+				<div class='wizard-nav'>
+					<button class='prevbutton' onclick='if (App.getCurrentPath()) { wizard.closeAll(); } else { wizard.open("startwool"); }'>
+					Cancel</button>
+					<button class='nextbutton' onclick='wizard.open("newproject");'>
+					Previous</button>
+					<button class='nextbutton'
+						onclick='wizardCreateProject.finish();'
+						data-bind="enable: defaultLanguage"
+					>Finish</button>
+				</div>
+
+				<div>Select which language will be used by default in this
+				project. You can enter the ISO code for the language, and
+				optionally
+				region, or select a code from a basic or full language set.</div>
+				<ul>
+					<li><label><input type="radio" name="languageSet" value="simple"
+					 checked = "checked"
+					 onclick='languageAutoComplete("wizard_defaultlanguage","simple");'>
+						Basic language set
+					</input></label>
+					<li><label><input type="radio" name="languageSet" value="full"
+					 onclick='languageAutoComplete("wizard_defaultlanguage","full");'>
+						Full language set
+					</input></label>
+				</ul>
+
+				<div class='field'>
+					<div class='fieldleft'>Default Language:</div>
+					<div class='fieldright'>
+						<input id="wizard_defaultlanguage" class='filefield' type="text" data-bind="value: defaultLanguage"/>
+					</div>
+				</div>
+				<!--<div class='field'>
+					<div class='fieldleft'></div>
+					<div class='fieldright'>
+						<div data-bind="text: defaultLanguageKnown"/>
+					</div>
+				</div>-->
+
+			</div>
+		</div>
+
+		<div class='wizard app-bg-light' id='createproject_cannot_init'>
+			<div class='wizardprogress'>
+				<div>Create new project</div>
+				<div>1. Project Location</div>
+				<div>2. Languages</div>
+				<div>3. Finished!</div>
+			</div>
+
+			<div class='wizardform'>
+				<div class='wizard-nav'>
+					<button class='prevbutton'
+					 onclick='wizard.open("selectlanguage");'>
+					Previous</button>
+				</div>
+
+				<div class='title'>Error</div>
+				<div>Cannot initialize project because an error occurred.</div>
+				<div id="createproject_errortext" class="errortext"></div>
+			</div>
+		</div>
+
+
+		<div class='wizard app-bg-light' id='createproject_finished'>
+			<div class='wizardprogress'>
+				<div>Create new project</div>
+				<div>1. Project Location</div>
+				<div>2. Languages</div>
+				<div><b>3. Finished!</b></div>
+			</div>
+
+			<div class='wizardform'>
+				<div class='wizard-nav'>
+					<button class='prevbutton' onclick='wizard.closeAll();'>
+					Let's go!</button>
+				</div>
+
+				<div class='title'>Finished!</div>
+				<div>Your project is now set up.</div>
+
+			</div>
+		</div>
+
+		<script>
+			var WizardCreateProject = function() {
+				var self = this;
+				this.projectDir = ko.observable(null);
+				this.defaultLanguage = ko.observable("");
+				this.finish = function() {
+					if (app.fs.existsSync(wizardCreateProject.projectDir())) {
+						document.getElementById("createproject_errortext").innerText="Directory already exists.";
+						wizard.open("createproject_cannot_init");
+						return;
+					}
+					app.fs.mkdirSync(this.projectDir());
+					app.fs.mkdirSync(this.projectDir()
+						+ "/" + this.getDefaultLanguage());
+					var relativeFilePath = this.getDefaultLanguage() + "/start.wool";
+					var filePath = this.projectDir()
+						+ "/" + relativeFilePath;
+					var nodeData = 
+						 "title: Start\n"
+						+"tags: \n"
+						+"speaker: Bob\n"
+						+"colorID: 1\n"
+						+"position: 368,255\n"
+						+"---\n"
+						+"Your first node.\n"
+						+"\n"
+						+"[[Great!|Start]]\n"
+						+"\n"
+						+"===\n";
+					app.fs.writeFile(filePath,nodeData,
+						function(err) {
+							if (err) {
+								document.getElementById("createproject_errortext").innerText="Cannot write start.wool file.";
+								wizard.open("createproject_cannot_init");
+							} else {
+								app.setCurrentPath(relativeFilePath);
+								data.loadData(nodeData, FILETYPE.WOOL, true);
+								// shut up save changes dialog
+								app.recordSavedChanges(null);
+								filemgr.setRoot(self.projectDir());
+								filemgr.updateDirTree();
+								wizard.open("createproject_finished");
+							}
+						}
+					);
+				};
+				this.getDefaultLanguage = function() {
+					var lang = this.defaultLanguage().trim().split(" ");
+					if (lang.length >= 1) return lang[0];
+					return "en";
+				};
+				this.setProjectDir = function() {
+					var dir = document.getElementById("wizard_project_dir").value;
+					var name = document.getElementById("wizard_project_name").value;
+					if (dir && name) {
+						wizardCreateProject.projectDir(dir + "/" + name);
+						document.getElementById("wizard_project_stored_title")
+							.innerText
+							= "Your project will be stored under:"
+						document.getElementById("wizard_project_stored").innerText
+							= wizardCreateProject.projectDir();
+					} else {
+						wizardCreateProject.projectDir(null);
+						document.getElementById("wizard_project_stored_title")
+							.innerText = "";
+						document.getElementById("wizard_project_stored").innerText
+							= "";
+					}
+				}
+				this.openProjectDir = function () {
+					if (filemgr) {
+						filemgr.sendSelectDirCustom(null,selectedProjectDir);
+					}
+				}
+			};
+			var wizardCreateProject = new WizardCreateProject();
+			/*wizardCreateProject.defaultLanguageKnown = ko.pureComputed(
+				function() {
+					var codes = app.getAllLanguages();
+					codes.concat(app.getBasicLanguages());
+					var lang = this.defaultLanguage().trim().split(" ");
+					if (lang.length >= 1) {
+						console.log(lang[0]);
+					return "language_unknown";
+					}
+					return "language_no";
+				}, wizardCreateProject);*/
+			ko.applyBindings(wizardCreateProject,
+				document.getElementById("wizardoverlay"));
+			// callback for select directory
+			function selectedProjectDir(evt) {
+				document.getElementById("wizard_project_dir").value
+					= evt.data.data;
+				wizardCreateProject.setProjectDir();
+			}
+			// type: simple or full
+			function languageAutoComplete(elemid,type) {
+				$("#"+elemid).autocomplete({
+					source: type=="full" 
+						? app.getAllLanguages() : app.getBasicLanguages() ,
+					minLength: 0,
+					select: function( event, ui ) {
+						// set selected value forcibly to ensure 
+						// it is saved.
+						wizardCreateProject.defaultLanguage(ui.item.value);
+					},
+					appendTo: "#wizardoverlay",
+				});
+				// call search function when focused to make menu appear
+				// immediately
+				// https://stackoverflow.com/questions/8401734/jquery-ui-autocomplete-have-the-menu-open-when-user-clicks-in-the-text-box
+				$("#"+elemid).focus(function(event) {
+					console.log("focus");
+					$(this).autocomplete( "search" , "" );
+				});
+			}
+		</script>
+	</div> <!-- wizardoverlay -->
+
+
+	<!-- file tree UI -->
+	<div id='filepanel' class="split">
+		<div id="filepanelheader">
+			<!-- nwjs style: input type="file" onchange='selectBaseDir(this);' nwdirectory /> -->
+			<button class='button' onclick='wizard.open("newproject");'>New project</button>
+			<button class='button' onclick='filemgr.sendSelectBaseDir();'>Open project</button>
+			<button class='button' onclick='filemgr.updateDirTree();'>Reload directory</button>
+		</div>
+		<div id="fileroot"></div>
+		<div id="filetree"></div>
+	</div>
+
+
+	<!-- edit canvas UI -->
+	<div id='editpanel' class="split">
+		<!-- Fancy Background -->
+		<div class="app-bg">&nbsp;</div>
+
+		<!-- Entry Point / Container -->
+		<div id="app" tabindex="0">
+
+			<!-- search form -->
+			<div class="app-search">
+				<input type="checkbox" id="searchToggle">
+				<label id="searchToggleLabel" for="searchToggle">
+					<span>Search:</span>
+				</label>
+				<div id="searchBox">
+					<div id="searchBoxInner">
+						<input type="text" class="search-field"/>
+						<div class="search-speaker search-item">
+							<input type="checkbox" id="search-speaker" />
+							<label for="search-speaker">Speaker</label>
+						</div>
+						<div class="search-title search-item">
+							<input type="checkbox" checked="checked" id="search-title" />
+							<label for="search-title">Title</label>
+						</div>
+						<div class="search-body search-item">
+							<input type="checkbox" id="search-body" />
+							<label for="search-body">Body</label>
+						</div>
+						<div class="search-tags search-item">
+							<input type="checkbox" id="search-tags" />
+							<label for="search-tags">Tags</label>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- zoom controls -->
+			<!--
+			<div class="app-zoom">
+				<span data-bind="click: function() { app.zoom(4); }"></span>
+				<span data-bind="click: function() { app.zoom(3); }"></span>
+				<span data-bind="click: function() { app.zoom(2); }"></span>
+				<span data-bind="click: function() { app.zoom(1); }"></span>
+			</div>
+			-->
+
+			<div class="app-sort">
+				<span data-bind="click: app.arrangeX" title='Arrange selected nodes'></span>
+				<span data-bind="click: app.arrangeY" title='Arrange selected nodes'></span>
+				<span data-bind="click: app.center" title='Center diagram'></span>
+				<!-- <span data-bind="click: app.arrangeSpiral"></span> -->
+				<!-- <span data-bind="click: app.sortAlphabetical"></span> -->
+			</div>
+
+			<!-- navigation / menu -->
+			<div class="app-menu">
+				<div class="menu">
+					<span class="title" data-bind="click:app.newNode">Add Node</span>
+					<div class="dropdown">
+						<span class="item" data-bind="click: app.historyDirection('undo'), text: app.getLastNodeOp('Undo')"></span>
+						<span class="item" data-bind="click: app.historyDirection('redo'), text: app.getNextNodeOp('Redo')"></span>
+					</div>
+				</div>
+				<div class="menu">
+					<span class="title" data-bind="click:app.runDialogue">Run</span>
+					<div class="dropdown">
+						<span class="item" data-bind="click: app.runDialogue">(Re)start</span>
+						<span class="item" data-bind="click: app.contDialogue">Continue</span>
+						<span class="sep">Selected Language</span>
+				  		<!-- ko foreach: { data: app.languages, as: 'lang' } -->
+						<span class="item" data-bind="text: lang, click: app.selectLanguage, css: { active: lang == app.selectedLanguage() }"></span>
+						<!-- /ko -->
+					</div>
+				</div>
+
+				<!--<div class="menu">
+					<span class="title">Buffer</span>
+					<div class="dropdown">
+						<a class="item" download="file.wool" href='#' onclick="data.saveToBuffer();">Save</a>
+						<span class="item" data-bind="click: data.loadFromBuffer">Reload</span>
+					</div>
+				</div>-->
+				<div class="menu">
+					<span class="title">File</span>
+					<div class="dropdown">
+						<span class="item" data-bind="click: data.tryClearData">New ...</span>
+						<span class="item" data-bind="click: data.tryOpenFile">Open...</span>
+						<!--<span class="item" data-bind="click: data.tryOpenFolder">Open Folder...</span>-->
+						<span class="item" data-bind="click: data.tryAppend">Append...</span>
+						<a class="item" download="file.wool" href='#' onclick="return data.saveFileDialog(this,FILETYPE.WOOL,data.getSaveData(FILETYPE.WOOL));">Save...</a>
+						<span class="item" data-bind="click: app.startTranslating">Translate...</span>
+						<a class="item" download="file.csv" href='#' onclick="data.saveFileDialog(this,FILETYPE.JSON,data.getSaveData(FILETYPE.JSON));">Export Poeditor Terms</a>
+						<span class="item" data-bind="click: data.tryOpenLang">Load Translation</span>
+						<span class="item" data-bind="click: data.clearDictionary">Remove Translation</span>
+						<!-- ko if:data.editingPath() != null -->
+						<!--
+						<span class="item" data-bind="click: data.trySaveCurrent">Save</span>
+						-->
+						<!-- /ko -->
+						<!--
+						<span class="item" data-bind="click: function() { data.trySave(FILETYPE.JSON); }">Save As Json...</span>
+						<span class="item" data-bind="click: function() { data.trySave(FILETYPE.YARNTEXT); }">Save As Yarn...</span>
+						<span class="item" data-bind="click: function() { data.trySave(FILETYPE.TWEE); }">Save As Twee...</span>
+						<span class="item" data-bind="click: function() { data.trySave(FILETYPE.TWEE2); }">Save As Twee2...</span>
+						<span class="item" data-bind="click: function() { data.trySave(FILETYPE.XML); }">Save As Xml...</span>
+						-->
+						<!--<span class="item" data-bind="click: app.quit">Close</span>-->
+					</div>
+				</div>
+			</div>
+
+			<!-- arrow bg canvas for linked nodes -->
+			<canvas class="arrows">
+
+			</canvas>
+
+			<!-- foreach loop  of the nodes -->
+			<div class="nodes">
+				<div class="nodes-holder" data-bind="foreach: { data: app.nodes, as: 'node' }">
+					<div class="node" data-bind="nodeBind: true, css: {
+						inactive: !node.active(),
+						endNode: node.title()=='End',
+						startNode: node.title()=='Start',
+					}" >
+						<div class="node-warning" data-bind="text: 
+						(node.hasErrors() ? '&#x26a0;' : '')"></div>
+						<div class="title" data-bind="text: 
+						node.speaker()
+						+':&nbsp;'
+						+node.title(),
+						style: {background:
+							node.colorID() == 0 ? '#EEEEEE' :
+							node.colorID() == 1 ? '#6EA5E0' :
+							node.colorID() == 2 ? '#9EDE74' :
+							node.colorID() == 3 ? '#FFE374' :
+							node.colorID() == 4 ? '#F7A666' :
+							node.colorID() == 5 ? '#C47862' :
+							node.colorID() == 6 ? '#97E1E9' :
+							node.colorID() == 7 ? '#FF7080' :
+							node.colorID() == 8 ? '#D070FF' :
+							node.colorID() == 9 ? '#AAAAAA' :
+							'#eee'
+						},"></div>
+						<div class="body" data-bind="html: node.clippedBody"></div>
+						<div class="tags" data-bind="html: node.clippedTags"></div>
+						<div class="icon colorDown" data-bind="click: node.cycleColorDown"></div>
+						<div class="icon colorUp" data-bind="click: node.cycleColorUp"></div>
+						<!--<div class="icon edit" data-bind="click: function() { app.editNode(node); }"></div>-->
+						<div class="icon delete" data-bind="click: node.tryRemove"></div>
+						<!--<div class="resize" data-bind="click:node.toggleExpand"></div>-->
+					</div>
+				</div>
+			</div>
+
+			<script>
+				function speakerAutoComplete() {
+					// XXX we wait a second here, won't work otherwise
+					setTimeout(function() {
+						$("#speakerfield").autocomplete({
+							source: app.getAllSpeakers(),
+							minLength: 0,
+							select: function( event, ui ) {
+								// set selected value forcibly to ensure 
+								// it is saved.
+								app.editing().speaker(ui.item.value);
+							}
+						});
+					// call search function when focused to make menu appear
+					// immediately
+					// https://stackoverflow.com/questions/8401734/jquery-ui-autocomplete-have-the-menu-open-when-user-clicks-in-the-text-box
+					$("#speakerfield").focus(function(event) {
+						$(this).autocomplete( "search" , "" );
+					});
+					}, 500);
+				}
+			</script>
+			<!-- ko template: { if:app.editing() != null, afterRender:
+			speakerAutoComplete() } -->
+			<div class="node-editor" data-bind="mousedown:app.saveNode">
+
+				<div class="form" data-bind="preventBubble: 'click', preventBubble: 'mousedown'">
+					<!--<button onclick='app.editing().compile();'>Compile</button>-->
+					<div id="node-errors" class="node-errors"></div>
+					Speaker:
+					<input id="speakerfield" type="text" data-bind="
+						value: app.editing().speaker
+					">
+					Title:
+					<input type="text" class="title" data-bind="value: app.editing().title">
+					Tags:
+					<input type="text" data-bind="value: app.editing().tags">
+					<div class="editor-container">
+						<div class="editor" id="editor"
+							data-bind="
+							ace: app.editing().body, 
+							aceOptions: { mode: 'wool', theme: 'wool', showPrintMargin: false }">
+						</div> 
+					</div>
+					<!--<div class="icon close" data-bind="click:app.saveNode"></div>-->
+					<div class="editor-footer">
+						Length: <span class="character-count">0</span>
+						&nbsp;
+						Lines: <span class="line-count">0</span>
+						&nbsp;&nbsp;|&nbsp;&nbsp;
+						Line: <span class="line-index">0</span>
+						&nbsp;
+						Col: <span class="column-index">0</span>
+					</div>
+				</div>
+			</div>
+			<!-- /ko -->
+
+			<!-- ko if:app.translating() != null -->
+			<div class="translate">
+
+				<div class="form" data-bind="preventBubble: 'click'">
+
+				  <div class="" data-bind="foreach: { data: app.getTranslationNodes(), as: 'node' }">
+				    <div class="translate-title" data-bind="html: node.title"></div>
+					<div class="" data-bind="
+					foreach: { data:node.translationTexts, as:'text' }">
+						<div class="formblock">
+							<span class="translate-speaker" data-bind="text: (text.speaker ? text.speaker : '<no speaker>') + ':'">
+							</span>
+							<span class="translate-source" data-bind="text: text.source">
+							</span>
+
+							<textarea type="text" class="translate-dest" data-bind="textInput: text.translation, css: { translationEmpty: !text.translation() }, translationBind: true ">
+							</textarea>
+						</div>
+					</div>
+
+				  </div>
+				  <div class="buttons">
+				    <div class="button" data-bind="click:app.saveTranslation">
+					  <div class="icon close"></div>
+					  Save changes
+				    </div>
+				    <div class="button" data-bind="click:app.discardTranslation">
+				      <div class="icon cancel"></div>
+					  Discard changes
+				    </div>
+				  </div> <!-- buttons -->
+				</div>
+
+			</div>
+			<!-- /ko -->
+
+			<!-- not used yet -->
+			<!-- ko if:app.editingAgent() != null -->
+			<div class="editAgent">
+
+				<div class="form" data-bind="preventBubble: 'click'">
+					Name: <input type="text" data-bind="
+						value: app.editingAgent().name
+					">
+					Gender:
+					<input type="text" data-bind="value: app.editingAgent().gender">
+					ID:
+					<input type="text" data-bind="value: app.editingAgent().id">
+					<div class="icon close" data-bind="click:app.saveAgent"></div>
+				</div>
+
+			</div>
+			<!-- /ko -->
+
+			<!-- ko if:app.deleting() != null -->
+			<div class="node-delete" data-bind="click: function() { app.deleting(null); }">
+
+				<div class="form" data-bind="preventBubble: 'click'">
+					<!-- ko if: (app.deleting().selected && (app.getSelectedNodes().length > 1)) -->
+					<div>Remove all selected</div>
+					<!-- /ko -->
+					<!-- ko ifnot: (app.deleting().selected) -->
+					<div>Remove <span data-bind="text: app.deleting().title"></span>?</div>
+					<!-- /ko -->
+					<!-- ko if: (app.deleting().selected && (app.getSelectedNodes().length == 1)) -->
+					<div>Remove <span data-bind="text: app.deleting().title"></span>?</div>
+					<!-- /ko -->
+					<div class="icon close" data-bind="click:app.deleting().remove;"></div>
+				</div>
+
+			</div>
+			<!-- /ko -->
+
+			<!-- app info -->
+			<div class="app-info">
+				<div style='float:left;'>
+					<img src="images/wool-logo-34.png" />
+				</div>
+				<div style='float:left; padding-top:6px; margin-left:5px;'>
+					<span class="app-title" data-bind="text:app.name"></span>
+					<span class="app-version" data-bind="text:app.version"></span>
+				</div>
+				<div style='clear:both;'>
+					<span class="app-filename" data-bind="text:app.filename"></span>
+					<span class="app-nrofnodes" data-bind="text:app.numberOfNodes()"></span>
+					<span class="app-crlfformat" data-bind="text:app.crlfFormat()"></span>
+				</div>
+			</div>
+
+
+			<!-- marquee -->
+			<div id="marquee"></div>
+		</div>
+
+		<!-- Hidden fields, file dialogs, and elements -->
+		<div class="hidden">
+			<input type="file" id="open-file" accept=".wool"/>
+			<input type="file" id="open-lang" accept=".po,.json"/>
+			<input type="file" id="open-folder" webkitdirectory directory/>
+			<input type="file" id="save-file" nwsaveas="filename.txt" />
+		</div>
+
+		<div id="woolclient-popup" class="woolclient-popup"
+		onclick="this.style.display='none';">
+			<div class="closebutton" onclick="this.parentNode.style.display='none';">X</div>
+			<iframe id="woolclient-popup-iframe"></iframe>
+		</div>
+
+		<!-- templates container (they get loaded into this) -->
+		<div class="templates">
+		</div>
+
+		<!-- start it all up! -->
+		<script type="text/javascript">
+			// TODO move this to App, then we can get rid of static parts
+			var filePath = App.getCurrentPath();
+			var app = new App("Wool Editor", "1.11.1",
+				filePath ? filePath : "unnamed");
+			app.run();
+			if (app.isNwjs) {
+				Split(["#filepanel","#editpanel"],{
+					//minSize: [0,1070],
+					minSize: [0,700],
+					sizes: [15,85],
+					snapOffset: 0,
+					onDrag: app.translate,
+				});
+				var filemgr = new FileManager(app.dirtreeUpdated);
+				filemgr.init();
+				app.metadata.load(filemgr.getRoot());
+				var wizard = new Wizard("wizardoverlay");
+				languageAutoComplete("wizard_defaultlanguage");
+				if (!App.getCurrentPath()) {
+					wizard.open("startwool");
+				}
+			} else {
+				$("#filepanel").hide();
+				$("#editpanel").css("width","100%");
+			}
+			// Test code for custom popups. Maybe this can go somewhere.
+			/*
+			var in1 = prompt("Dit is een test. Dit is een test","input");
+			alert("Dit is een test. Dit is een test. Dit is een test."+in1);
+			var in2 = confirm("Dit is een test. Dit is een test. dit si een test.");
+			alert("Dit is een test. Dit is een test. Dit is een test. Dit is een test. Dit is een test. Dit is een test. Dit is een test. Dit is een test. Dit is een test. Dit is een test. Dit is een test."+in2);
+			*/
+		</script>
+	</div>
+
+</body>
+</html>

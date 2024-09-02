@@ -1,0 +1,42 @@
+{
+  "name": "Wool",
+  "version": "1.11.1",
+  "main": "wooleditor/main.js",
+  "window": {
+    "toolbar": false,
+    "position": "center",
+    "width": 1280,
+    "height": 720,
+    "min_width": 800,
+    "min_height": 600,
+    "icon": "Yarn.png"
+  },
+  "build": {
+    "appId": "your.id",
+    "mac": {
+      "category": "your.app.category.type"
+    }
+  },
+  "scripts": {
+    "test": "jest --coverage",
+    "start": "electron .",
+    "start-debug": "electron --inspect=9229 .",
+    "build": "electron-packager --platform win32 .",
+    "build-mac": "electron-packager --platform darwin .",
+    "build2": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^17.1.1",
+    "electron-builder": "^23.0.3",
+	"cli-truncate": "2.1.0",
+    "electron-packager": "^15.2.0",
+    "jest": "^28.1.0"
+  },
+  "dependencies": {
+    "jquery": "^3.6.0",
+    "jquery-ui-dist": "^1.12.1",
+    "jstree": "^3.3.11",
+    "marked": "^4.0.16",
+    "split.js": "^1.6.4"
+  }
+}

@@ -1,0 +1,33 @@
+title: Start
+tags: 
+speaker: Test Dummy
+colorID: 0
+position: -84,408
+---
+This is a test of action statements. Testing image and video actions.
+
+This first step should show an image action.
+<<action type="image" value="image.png">>
+
+[[Let's go to the video action.|VideoAction]]
+===
+title: VideoAction
+tags: 
+speaker: Test Dummy
+colorID: 0
+position: 246,406
+---
+This step should show a video action.
+
+<<action type="video" value="https://www.youtube.com/embed/dQw4w9WgXcQ?si=6-24phZphLeogCBP">>
+
+[[End]]
+===
+title: End
+tags: 
+speaker: Test Dummy
+colorID: 0
+position: 878,692
+---
+
+===

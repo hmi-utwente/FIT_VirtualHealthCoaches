@@ -1,0 +1,28 @@
+title: Start
+tags: 
+speaker: Bob
+colorID: 2
+position: 1266,-458
+---
+The following input field should allow you to type something that will appear in the next step.
+
+[[Your input: <<input type="text" value="$value">>.|NextStep]]
+===
+title: NextStep
+tags:
+speaker: Bob
+colorID: 0
+position: 1568,-460
+---
+Your input was "$value".
+
+[[End]]
+===
+title: End
+tags: 
+speaker: Bob
+colorID: 0
+position: 1910,393
+---
+
+===
